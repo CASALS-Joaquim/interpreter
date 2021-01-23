@@ -1,45 +1,34 @@
 mod lexer;
 mod token;
-use std::slice::from_raw_parts;
-use std::str::from_utf8;
 
 fn main() {
 	repl::start();
 }
 
-fn tokenizer(tokenized: (*const u8, usize)) -> Vec<token::Token> {
-	let lexer = lexer::Lexer::new((tokenized.0, tokenized.1));
-	let mut tokens = Vec::new();
-	for tok in lexer {
-		tokens.push(tok);
-	}
-	tokens
-}
-
 mod repl {
 	const PROMPT: &'static str = ">>> ";
 	pub fn start() {
+		use std::io::Write;
 		use std::io::stdin as get_stdin;
-		use std::io::Read;
-		let mut stdin = get_stdin();
+		use std::io::stdout as get_stdout;
+		let stdin = get_stdin();
+		let handle = stdin.lock();
 		use std::io::BufRead;
-		let mut line = String::new();
-		loop {
-			print!("{}", PROMPT);
-			stdin.read_to_string(&mut line);
-			if line.contains(&String::from("\\q\n")) { break; }
-			let tokens = crate::tokenizer((
-				line
-					.as_str()
-					.as_ptr(),
-				line
-					.as_str()
-					.len()));
-			for token in tokens.iter() {
-				println!("{{ Type: {}    Literal: {} }}",
-					token.token_type, token.literal);
+		let mut stdout = get_stdout();
+
+		print!("{}", PROMPT); stdout.flush().unwrap();
+		//let mut line = String::new();
+		for line in handle.lines() {
+			let line = line.unwrap();
+			stdout.flush().unwrap();
+			let lex = crate::lexer::Lexer::new(line);
+			for token in lex {
+				println!("{{ Type: {}    Literal: {} }}", token.token_type, token.literal);
+				stdout.flush().unwrap();
 			}
 			println!("");
+			print!("{}", PROMPT);
+			stdout.flush().unwrap();
 		}
 	}
 }

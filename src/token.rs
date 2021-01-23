@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-#[derive(Clone, Copy)]
 pub struct Token {
-    pub token_type: &'static str,
-    pub literal: &'static str,
+    pub token_type: String,
+    pub literal: String,
 }
 
 macro_rules! map {
@@ -91,10 +90,9 @@ pub use self::tokens::{
     TRUE
 };
 
-
 #[allow(dead_code)]
-pub fn lookup_indent(ident: &str) -> &'static str {
-    let keywords: HashMap<&'static str, &'static str> = map!{
+pub fn lookup_indent(ident: &str) -> &str {
+    let keywords: HashMap<&str, &str> = map!{
         "fn" => FUNCTION,
         "let" => LET,
         "true" =>  TRUE,

@@ -1,280 +1,241 @@
-use std::str::Chars;
-use std::iter::Enumerate;
-use std::slice::from_raw_parts;
-use std::str::from_utf8;
 use super::token;
 use super::token::tokens;
-pub use tokens::*;
+pub use self::tokens::*;
 
-#[derive(Debug, Clone)]
 pub struct Lexer {
-    input: Enumerate<Chars<'static>>,
-    current: Option<(usize, char)>,
-    passed: bool,
+	input: String,
+	current: usize
 }
 
 impl Lexer {
-    pub fn new(input: (*const u8, usize)) -> Self {
-        let input = match from_utf8(unsafe {from_raw_parts(input.0, input.1)}){
-            Ok(v) => v,
-            Err(_) => panic!()
-        };
-        let mut lex = Lexer {
-            input: input.chars().enumerate(),
-            current: None,
-            passed: false,
-        };
-        lex.current = lex.input.next();
-        lex
-    }
+	pub fn new(input: String) -> Self {
+		Lexer {
+			input: input,
+			current: 0
+		}
+	}
 
-    pub fn read_char(&mut self) {
-        if !self.passed {
-            self.current = match self.input.next() {
-                Some(something) => {
-                    Some(something)
-                }
-                None => {
-                    None
-                }
-            };
-        }
-        self.passed = false;
-    }
+	
+	fn get_char(&self, distance_from_current: isize) -> Option<char> {
+		self.input.chars().nth((self.current as isize + distance_from_current) as usize)
+	}
 
-    pub fn skip_whitespaces(&mut self) {
-        while match self.current {
-            Some((_, ' ')) | Some((_, '\t')) | Some((_, '\n')) | Some((_, '\r')) => {
-                true
-            }
-            _ => false
-        } {
-            self.read_char();
-        }
-    }
+	pub fn read_char(&mut self) {
+		match self.input.chars().nth(1) {
+			Some(_) => self.current += 1,
+			None => return ()
+		}
+	}
 
-    pub fn read_identifier(&mut self)-> (*const u8, usize) {
-        let mut buf = String::new();
-        while match self.current {
-            Some((_, ch)) => {
-                ch.is_alphanumeric()
-            }
-            None => { false }
-        } {
-            buf = format!("{}{}", buf, match self.current {
-                Some((_, value)) => { value }
-                None => { panic!(1) }
-            });
-            self.read_char()
-        }
-        self.passed = true;
-        (buf.as_str().as_ptr(), buf.as_str().len())
-    }
+	pub fn skip_whitespaces(&mut self) {
+		while match self.get_char(0) {
+			Some(' ')
+			| Some('\t')
+			| Some('\n')
+			| Some('\r') => true,
+			_ => false
+		} {
+			self.read_char();
+		}
+	}
 
-    pub fn read_number(&mut self) -> (*const u8, usize) {
-        let mut buf: String = String::new();
-        while match self.current {
-            Some((_, ch)) => ch.is_digit(10),
-            _ => false
-        } {
-            match self.current {
-                Some((_, ch)) => {
-                    buf.push_str(ch.to_string().as_str())
-                }_ => {}
-            };
-            self.read_char();
-            
+	pub fn read_identifier(&mut self) -> String {
+		let mut buf = String::new();
+		while match self.get_char(0) {
+			Some(ch) => ch.is_alphanumeric(),
+			None => false
+		} {
+			buf = format!("{}{}", buf, match self.get_char(0) {
+				Some(ch) => ch,
+				None => panic!("Corrupted data!")
+			});
+			self.read_char()
         }
-        self.passed = true;
-        (buf.as_ptr(), buf.len())
-    }
+        self.current -= 1;
+		buf
+	}
+
+	pub fn read_number(&mut self) -> String {
+		let mut buf: String = String::new();
+		while match self.get_char(0) {
+			Some(ch) => ch.is_digit(10),
+			None => false
+		} {
+			match self.get_char(0) {
+				Some(ch) => buf.push_str(ch.to_string().as_str()),
+				_ => {}
+			};
+			self.read_char();
+		}
+		self.current -= 1;
+		buf
+	}
 }
 
-
 impl Iterator for Lexer {
-    type Item = token::Token;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.skip_whitespaces();
-        let tok = match self.current {
-            Some((_, '=')) => {
-                self.read_char();
-                self.passed = true;
-                match self.current {
-                    Some((_, '=')) => {
-                        self.passed = false;
-                        Some(token::Token {
-                            token_type: token::EQ,
-                            literal: "=="
-                        })
-                    }
-                    _ => {
-                        Some(token::Token {
-                            token_type: token::ASSIGN,
-                            literal: "="
-                        })
-                    }
-                }
-            }
+	type Item = token::Token;
+	fn next(&mut self) -> Option<Self::Item> {
+		self.skip_whitespaces();
+		let tok = match self.get_char(0) {
+			//check the equality or assignment case
+			Some('=') => {
+				//which one it  is? equality or assignment?
+				match self.get_char(1) {
+					Some('=') => {
+						self.current += 1;
+						Some(token::Token {
+							token_type: String::from(token::EQ),
+							literal: String::from("==")
+						})
+					}
+					_ => {
+						Some(token::Token {
+							token_type: String::from(token::ASSIGN),
+							literal: String::from("=")
+						})
+					}
+				}
+			}
+			
+			Some('+') => {
+				Some(token::Token {
+					token_type: String::from(token::PLUS),
+					literal: String::from("+")
+				})
+			}
 
-            Some((_, '+')) => {
-                Some(token::Token {
-                    token_type: token::PLUS,
-                    literal: "+"
-                })
-            }
+			Some('-') => {
+				Some(token::Token {
+					token_type: String::from(token::MINUS),
+					literal: String::from("-")
+				})
+			}
 
-            Some((_, '-')) => {
-                Some(token::Token {
-                    token_type: token::MINUS,
-                    literal: "-"
-                })
-            }
+			Some('!') => {
+				match self.get_char(1) {
+					Some('=') => {
+						Some(token::Token {
+							token_type: String::from(token::NOT_EQ),
+							literal: String::from("!=")
+						})
+					}
+					_ => {
+						Some(token::Token{
+							token_type: String::from(token::BANG),
+							literal: String::from("!")
+						})
+					}
+				}
+			}
 
-            Some((_, '!')) => {
-                self.read_char();
-                self.passed = true;
-                match self.current {
-                    Some((_, '=')) => {
-                        self.passed = false;
-                        Some(token::Token {
-                            token_type: token::NOT_EQ,
-                            literal: "!="
-                        })
-                    }
-                    _ => {
-                        Some(token::Token{
-                            token_type: token::BANG,
-                            literal: "!"
-                        })
-                    }
-                }
-            }
+			Some('/') => {
+				Some(token::Token {
+					token_type: String::from(token::SLASH),
+					literal: String::from("/")
+				})
+			}
 
-            Some((_, '/')) => {
-                Some(token::Token {
-                    token_type: token::SLASH,
-                    literal: "/"
-                })
-            }
+			Some('*') => {
+				Some(token::Token {
+					token_type: String::from(token::ASTERISK),
+					literal: String::from("*")
+				})
+			}
 
-            Some((_, '*')) => {
-                Some(token::Token {
-                    token_type: token::ASTERISK,
-                    literal: "*"
-                })
-            }
+			Some('<') => {
+				Some(token::Token {
+					token_type: String::from(token::LT),
+					literal: String::from("<")
+				})
+			}
 
-            Some((_, '<')) => {
-                Some(token::Token {
-                    token_type: token::LT,
-                    literal: "<"
-                })
-            }
+			Some('>') => {
+				Some(token::Token {
+					token_type: String::from(token::GT),
+					literal: String::from(">")
+				})
+			}
+			
+			Some(';') => {
+				Some(token::Token {
+					token_type: String::from(token::SEMICOLON),
+					literal: String::from(";")
+				})
+			}
+			
+			Some(',') => {
+				Some(token::Token {
+					token_type: String::from(token::COMMA),
+					literal: String::from(",")
+				})
+			}
 
-            Some((_, '>')) => {
-                Some(token::Token {
-                    token_type: token::GT,
-                    literal: ">"
-                })
-            }
+			Some('{') => {
+				Some(token::Token {
+					token_type: String::from(token::LBRACE),
+					literal: String::from("{")
+				})
+			}
 
-            Some((_, ';')) => {
-                Some(token::Token {
-                    token_type: token::SEMICOLON,
-                    literal: ";"
-                })
-            }
+			Some('}') => {
+				Some(token::Token {
+					token_type: String::from(token::RBRACE),
+					literal: String::from("}")
+				})
+			}
 
-            Some((_, ',')) => {
-                Some(token::Token {
-                    token_type: token::COMMA,
-                    literal: ","
-                })
-            }
+			Some('(') => {
+				Some(token::Token {
+					token_type: String::from(token::LPAREN),
+					literal: String::from("(")
+				})
+			}
 
-            Some((_, '{')) => {
-                Some(token::Token {
-                    token_type: token::LBRACE,
-                    literal: "{"
-                })
-            }
+			Some(')') => {
+				Some(token::Token {
+					token_type: String::from(token::RPAREN),
+					literal: String::from(")")
+				})
+			}
 
-            Some((_, '}')) => {
-                Some(token::Token {
-                    token_type: token::RBRACE,
-                    literal: "}"
-                })
-            }
-
-            Some((_, '(')) => {
-                Some(token::Token {
-                    token_type: token::LPAREN,
-                    literal: "("
-                })
-            }
-
-            Some((_, ')')) => {
-                Some(token::Token {
-                    token_type: token::RPAREN,
-                    literal: ")"
-                })
-            }
-
-            None => {
-                Some(token::Token {
-                    token_type: token::EOF,
-                    literal: ""
-                })
-            }
-
-            Some((_, ch)) => {
-                if ch.is_alphabetic() {
-                    let ident = self.read_identifier();
-                    let literal: &'static str = match from_utf8(unsafe {from_raw_parts(ident.0, ident.1)}) {
-                        Ok(x) => x,
-                        Err(_) => panic!("Non valid UTF8")
-                    };
-                    Some(token::Token {
-                        token_type: token::lookup_indent(literal.clone().to_owned().as_str()),
-                        literal: literal
-                    })
-                } else if ch.is_digit(10) {
-                    let num = self.read_number();
-                    Some(token::Token {
-                        token_type: token::INT,
-                        literal: match from_utf8(unsafe {from_raw_parts(num.0, num.1)}) {
-                            Ok(x) => x,
-                            Err(_) => panic!("Non valid UTF8")
-                        }
-                    })
-                } else {
-                    Some(token::Token {
-                        token_type: token::ILLEGAL,
-                        literal: match from_utf8(unsafe {
-                            from_raw_parts(ch.to_string().as_str().as_ptr(), ch.to_string().as_str().len())
-                        }) {
-                            Ok(v) => v,
-                            Err(_) => panic!()
-                        }
-                    })
-                }
-            }
-        };
-        self.read_char();
-        match tok {
-            Some(tok) if tok.token_type == token::EOF => {
-                None
-            }
-            Some(tok) => {
-                Some(tok)
-            }
-            None=> panic!()
-        }
-    }
+			None => {
+				Some(token::Token {
+					token_type: String::from(token::EOF),
+					literal: String::from("")
+				})
+			}
+			
+			Some(ch) => {
+				if ch.is_alphabetic() {
+					let ident = self.read_identifier();
+					Some(token::Token {
+						token_type: String::from(token::lookup_indent(ident.as_str())),
+						literal: ident
+					})
+				} else if ch.is_digit(10) {
+					let num = self.read_number();
+					Some(token::Token {
+						token_type: String::from(token::INT),
+						literal: num
+					})
+				} else {
+					Some(token::Token {
+						token_type: String::from(token::ILLEGAL),
+						literal: ch.to_string()
+					})
+				}
+			}
+		};
+		self.read_char();
+		match tok {
+			Some(tok) if tok.token_type == String::from(token::EOF) => None,
+			Some(tok) => Some(tok),
+			None => None
+		}
+	}
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 pub mod test {
     use super::token;
     #[derive(Debug)]
@@ -512,7 +473,7 @@ pub mod test {
             //end 5
         ];
 
-        let lex: crate::lexer::Lexer = crate::lexer::Lexer::new((input.as_ptr(), input.len()));
+        let lex: crate::lexer::Lexer = crate::lexer::Lexer::new(String::from(input));
         println!("{{");
         let mut tests_iter = tests.iter();
         for tok in lex {
@@ -524,9 +485,9 @@ pub mod test {
                     break;
                 }
             };
-            println!("\t\"Type\": {{\"{}\": \"{}\"}},", test_tok.expected_type, tok.token_type);
+            println!("\t\"Type\": {{expected: {{\"{}\"    found: \"{}\"}}}},", test_tok.expected_type, tok.token_type);
+            println!("\t\"Literal\": {{expected: {{\"{}\": found: \"{}\"}}}},", test_tok.expected_literal, tok.literal);
             assert_eq!(test_tok.expected_type, tok.token_type);
-            println!("\t\"Literal\": {{\"{}\": \"{}\"}},", test_tok.expected_literal, tok.literal);
             assert_eq!(test_tok.expected_literal, tok.literal);
         }
         println!("}}");
