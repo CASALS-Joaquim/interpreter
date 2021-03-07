@@ -1,2 +1,0 @@
-language = "rust"
-run = "export RUST_BACKTRACE=full ; cargo clean & cargo run"
