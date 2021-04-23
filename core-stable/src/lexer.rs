@@ -1,21 +1,55 @@
 use super::token;
-use super::token::tokens;
-pub use self::tokens::*;
 
 pub struct Lexer {
 	input: String,
 	current: usize
 }
 
+enum IntPrefix {
+	Hexadecimal,
+	Binary,
+	Octal,
+	None
+}
+
+impl IntPrefix {
+	pub fn is_digit(&self, digit: char) -> bool {
+		match self {
+			Self::Hexadecimal => digit.is_digit(16),
+			Self::Binary => digit.is_digit(2),
+			Self::Octal => digit.is_digit(8),
+			Self::None => digit.is_digit(10)
+		}
+	}
+
+	pub fn parse_number(&self, number: &str) -> isize {
+		isize::from_str_radix(number, match self {
+			Self::None => 10,
+			Self::Hexadecimal => 16,
+			Self::Binary => 2,
+			Self::Octal => 8,
+		}).unwrap()
+	}
+}
+
+impl From<&str> for IntPrefix {
+	fn from(prefix: &str) -> IntPrefix {
+		match prefix {
+			"0x" => IntPrefix::Hexadecimal,
+			"0b" => IntPrefix::Binary,
+			"0o" => IntPrefix::Octal,
+			_ => IntPrefix::None
+		}
+	}
+}
 impl Lexer {
 	pub fn new(input: String) -> Self {
 		Lexer {
 			input: input,
-			current: 0
+			current: 0,
 		}
 	}
 
-	
 	fn get_char(&self, distance_from_current: isize) -> Option<char> {
 		self.input.chars().nth((self.current as isize + distance_from_current) as usize)
 	}
@@ -28,13 +62,7 @@ impl Lexer {
 	}
 
 	pub fn skip_whitespaces(&mut self) {
-		while match self.get_char(0) {
-			Some(' ')
-			| Some('\t')
-			| Some('\n')
-			| Some('\r') => true,
-			_ => false
-		} {
+		while matches!{ self.get_char(0), Some(' ') | Some('\t') | Some('\n') | Some('\r') } {
 			self.read_char();
 		}
 	}
@@ -54,11 +82,18 @@ impl Lexer {
         self.current -= 1;
 		buf
 	}
-
-	pub fn read_number(&mut self) -> String {
+	
+	pub fn read_number(&mut self) -> isize {
 		let mut buf: String = String::new();
+		let prefix = match IntPrefix::from(&self.input[self.current..self.current+2]) {
+			IntPrefix::None => IntPrefix::None,
+			prefix => {
+				self.current += 2;
+				prefix
+			}
+		};
 		while match self.get_char(0) {
-			Some(ch) => ch.is_digit(10),
+			Some(ch) => prefix.is_digit(ch),
 			None => false
 		} {
 			match self.get_char(0) {
@@ -68,8 +103,12 @@ impl Lexer {
 			self.read_char();
 		}
 		self.current -= 1;
-		buf
+		prefix.parse_number(&buf)
 	}
+
+	/*	pub fn read_string(&mut self) -> String {
+
+	}*/
 }
 
 impl Iterator for Lexer {
@@ -83,154 +122,74 @@ impl Iterator for Lexer {
 				match self.get_char(1) {
 					Some('=') => {
                         self.current += 1;
-						Some(token::Token {
-							token_type: String::from(token::EQ),
-							literal: String::from("==")
-						})
+						token::Eq
 					}
-					_ => {
-						Some(token::Token {
-							token_type: String::from(token::ASSIGN),
-							literal: String::from("=")
-						})
-					}
+					_ => token::Assign
 				}
 			}
 			
-			Some('+') => {
-				Some(token::Token {
-					token_type: String::from(token::PLUS),
-					literal: String::from("+")
-				})
-			}
+			Some('+') => token::Plus,
 
-			Some('-') => {
-				Some(token::Token {
-					token_type: String::from(token::MINUS),
-					literal: String::from("-")
-				})
-			}
+			Some('-') => token::Minus,
 
-			Some('!') => {
-				match self.get_char(1) {
-					Some('=') => {
-						Some(token::Token {
-							token_type: String::from(token::NOT_EQ),
-							literal: String::from("!=")
-						})
-					}
-					_ => {
-						Some(token::Token{
-							token_type: String::from(token::BANG),
-							literal: String::from("!")
-						})
-					}
-				}
-			}
+			Some('!') => match self.get_char(1) {
+                Some('=') => {
+					self.current += 1;
+					token::NotEq
+				},
+                _ => token::Bang
+            }
 
-			Some('/') => {
-				Some(token::Token {
-					token_type: String::from(token::SLASH),
-					literal: String::from("/")
-				})
-			}
+			Some('/') => token::Slash,
 
-			Some('*') => {
-				Some(token::Token {
-					token_type: String::from(token::ASTERISK),
-					literal: String::from("*")
-				})
-			}
+			Some('*') => token::Asterisk,
 
-			Some('<') => {
-				Some(token::Token {
-					token_type: String::from(token::LT),
-					literal: String::from("<")
-				})
-			}
+			Some('<') => match self.get_char(1) {
+				Some('=') => {
+					self.current += 1;
+					token::LowerThanOrEqualTo
+				},
+				_ => token::LowerThan
+			},
 
-			Some('>') => {
-				Some(token::Token {
-					token_type: String::from(token::GT),
-					literal: String::from(">")
-				})
-			}
-			
-			Some(';') => {
-				Some(token::Token {
-					token_type: String::from(token::SEMICOLON),
-					literal: String::from(";")
-				})
-			}
-			
-			Some(',') => {
-				Some(token::Token {
-					token_type: String::from(token::COMMA),
-					literal: String::from(",")
-				})
-			}
+			Some('>') => match self.get_char(1) {
+				Some('=') => {
+					self.current += 1;
+					token::GreaterThanOrEqualTo
+				},
+				_ => token::LowerThan
+			},
 
-			Some('{') => {
-				Some(token::Token {
-					token_type: String::from(token::LBRACE),
-					literal: String::from("{")
-				})
-			}
+			Some(';') => token::Semicolon,
 
-			Some('}') => {
-				Some(token::Token {
-					token_type: String::from(token::RBRACE),
-					literal: String::from("}")
-				})
-			}
+			Some(',') => token::Comma,
 
-			Some('(') => {
-				Some(token::Token {
-					token_type: String::from(token::LPAREN),
-					literal: String::from("(")
-				})
-			}
+			Some('{') => token::LeftBrace,
 
-			Some(')') => {
-				Some(token::Token {
-					token_type: String::from(token::RPAREN),
-					literal: String::from(")")
-				})
-			}
+			Some('}') => token::RightBrace,
 
-			None => {
-				Some(token::Token {
-					token_type: String::from(token::EOF),
-					literal: String::from("")
-				})
-			}
-			
+			Some('(') => token::LeftParen,
+
+			Some(')') => token::RightParen,
+
+			None => token::EndOfFile,
+
 			Some(ch) => {
 				if ch.is_alphabetic() {
 					let ident = self.read_identifier();
-					Some(token::Token {
-						token_type: String::from(token::lookup_indent(ident.as_str())),
-						literal: ident
-					})
+					token::lookup_indent(ident.as_str())
 				} else if ch.is_digit(10) {
 					let num = self.read_number();
-					Some(token::Token {
-						token_type: String::from(token::INT),
-						literal: num
-					})
+					token::Int(num)
 				} else {
-					Some(token::Token {
-						token_type: String::from(token::ILLEGAL),
-						literal: ch.to_string()
-					})
-				}
-			}
-		};
+					token::Illegal(ch)
+                }
+            }
+        };
 		self.read_char();
 		match tok {
-			Some(tok) if tok.token_type == String::from(token::EOF) => None,
-			Some(tok) => Some(tok),
-			None => None
+			tok if tok == token::EndOfFile => None,
+			tok => Some(tok),
 		}
 	}
 }
@@ -239,241 +198,94 @@ impl Iterator for Lexer {
 pub mod test {
     use super::token;
     #[derive(Debug)]
-    struct ExpectedToken {
-        pub expected_type: &'static str,
-        pub expected_literal: &'static str,
-    }
-    
+    struct ExpectedToken(token::Token);
+
     #[test]
     pub fn test_next_token() {
-        let input = "let five = 5;\n\nlet ten = 10;\n\nlet add = fn(x, y) {\n\tx + y;\n};\n\nlet result = add(five, ten);\n";
+        let input = String::from("let five = 5;\n\nlet ten = 10;\n\nlet add = fn(x, y) {\n\tx + y;\n};\n\nlet result = add(five, ten);\n!-/*5; let True = true; let False = !True");
         let tests = vec![
             //begin 1
-            ExpectedToken {
-                expected_type: token::LET,
-                expected_literal: "let"
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "five"
-            },
-
-            ExpectedToken {
-                expected_type: token::ASSIGN,
-                expected_literal: "="
-            },
-
-            ExpectedToken {
-                expected_type: token::INT,
-                expected_literal: "5"
-            },
-
-            ExpectedToken {
-                expected_type: token::SEMICOLON,
-                expected_literal: ";"
-            },
+            ExpectedToken(token::Let),
+            ExpectedToken(token::Ident(String::from("five"))),
+            ExpectedToken(token::Assign),
+            ExpectedToken(token::Int(5)),
+            ExpectedToken(token::Semicolon),
             //end 1
 
             //begin 2
-            ExpectedToken {
-                expected_type: token::LET,
-                expected_literal: "let"
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "ten"
-            },
-
-            ExpectedToken {
-                expected_type: token::ASSIGN,
-                expected_literal: "="
-            },
-
-            ExpectedToken {
-                expected_type: token::INT,
-                expected_literal: "10"
-            },
-
-            ExpectedToken {
-                expected_type: token::SEMICOLON,
-                expected_literal: ";"
-            },
+            ExpectedToken(token::Let),
+            ExpectedToken(token::Ident(String::from("ten"))),
+            ExpectedToken(token::Assign),
+            ExpectedToken(token::Int(10)),
+            ExpectedToken(token::Semicolon),
             //end 2
 
             //begin 3
-            ExpectedToken {
-                expected_type: token::LET,
-                expected_literal: "let"
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "add"
-            },
-
-            ExpectedToken {
-                expected_type: token::ASSIGN,
-                expected_literal: "="
-            },
-
-            ExpectedToken {
-                expected_type: token::FUNCTION,
-                expected_literal: "fn"
-            },
-
-            ExpectedToken {
-                expected_type: token::LPAREN,
-                expected_literal: "("
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "x"
-            },
-            
-            ExpectedToken {
-                expected_type: token::COMMA,
-                expected_literal: ","
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "y"
-            },
-
-            ExpectedToken {
-                expected_type: token::RPAREN,
-                expected_literal: ")"
-            },
+            ExpectedToken(token::Let),
+            ExpectedToken(token::Ident(String::from("add"))),
+            ExpectedToken(token::Assign),
+            ExpectedToken(token::Function),
+            ExpectedToken(token::LeftParen),
+            ExpectedToken(token::Ident(String::from("x"))),
+			ExpectedToken(token::Comma),
+            ExpectedToken(token::Ident(String::from("y"))),
+            ExpectedToken(token::RightParen),
 
             //open block 3.x
-            ExpectedToken {
-                expected_type: token::LBRACE,
-                expected_literal: "{"
-            },
+            ExpectedToken(token::LeftBrace),
 
                 //begin 3.1
-                ExpectedToken {
-                    expected_type: token::IDENT,
-                    expected_literal: "x"
-                },
-
-                ExpectedToken {
-                    expected_type: token::PLUS,
-                    expected_literal: "+"
-                },
-
-                ExpectedToken {
-                    expected_type: token::IDENT,
-                    expected_literal: "y"
-                },
-
-                ExpectedToken {
-                    expected_type: token::SEMICOLON,
-                    expected_literal: ";"
-                },
+                ExpectedToken(token::Ident(String::from("x"))),
+                ExpectedToken(token::Plus),
+                ExpectedToken(token::Ident(String::from("y"))),
+                ExpectedToken(token::Semicolon),
                 //end 3.1
 
             //close block 3.x
-            ExpectedToken {
-                expected_type: token::RBRACE,
-                expected_literal: "}"
-            },
-
-            ExpectedToken {
-                expected_type: token::SEMICOLON,
-                expected_literal: ";"
-            },
+            ExpectedToken(token::RightBrace),
+            ExpectedToken(token::Semicolon),
             //end 3
 
             //begin 4
-            ExpectedToken {
-                expected_type: token::LET,
-                expected_literal: "let"
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "result"
-            },
-
-            ExpectedToken {
-                expected_type: token::ASSIGN,
-                expected_literal: "="
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "add"
-            },
-
-            ExpectedToken {
-                expected_type: token::LPAREN,
-                expected_literal: "("
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "five"
-            },
-
-            ExpectedToken {
-                expected_type: token::COMMA,
-                expected_literal: ","
-            },
-
-            ExpectedToken {
-                expected_type: token::IDENT,
-                expected_literal: "ten"
-            },
-
-            ExpectedToken {
-                expected_type: token::RPAREN,
-                expected_literal: ")"
-            },
-
-            ExpectedToken {
-                expected_type: token::SEMICOLON,
-                expected_literal: ";"
-            },
+            ExpectedToken(token::Let),
+            ExpectedToken(token::Ident(String::from("result"))),
+            ExpectedToken(token::Assign),
+            ExpectedToken(token::Ident(String::from("add"))),
+            ExpectedToken(token::LeftParen),
+            ExpectedToken(token::Ident(String::from("five"))),
+            ExpectedToken(token::Comma),
+            ExpectedToken(token::Ident(String::from("ten"))),
+            ExpectedToken(token::RightParen),
+            ExpectedToken(token::Semicolon),
             //end 4
 
             //begin 5
-            ExpectedToken {
-                expected_type: token::BANG,
-                expected_literal: "!"
-            },
-
-            ExpectedToken {
-                expected_type: token::MINUS,
-                expected_literal: "-"
-            },
-
-            ExpectedToken {
-                expected_type: token::SLASH,
-                expected_literal: "/"
-            },
-
-            ExpectedToken {
-                expected_type: token::ASTERISK,
-                expected_literal: "*"
-            },
-
-            ExpectedToken {
-                expected_type: token::INT,
-                expected_literal: "5"
-            },
-
-            ExpectedToken {
-                expected_type: token::SEMICOLON,
-                expected_literal: ";"
-            },
+            ExpectedToken(token::Bang),
+            ExpectedToken(token::Minus),
+            ExpectedToken(token::Slash),
+            ExpectedToken(token::Asterisk),
+            ExpectedToken(token::Int(5)),
+            ExpectedToken(token::Semicolon),
             //end 5
+
+			//begin 6
+			ExpectedToken(token::Let),
+			ExpectedToken(token::Ident(String::from("True"))),
+			ExpectedToken(token::Assign),
+			ExpectedToken(token::Boolean(true)),
+			ExpectedToken(token::Semicolon),
+			//end 6
+
+			//begin 7
+			ExpectedToken(token::Let),
+			ExpectedToken(token::Ident(String::from("False"))),
+			ExpectedToken(token::Assign),
+			ExpectedToken(token::Bang),
+			ExpectedToken(token::Ident(String::from("True"))),
+			ExpectedToken(token::Semicolon)
         ];
 
-        let lex: crate::lexer::Lexer = crate::lexer::Lexer::new(String::from(input));
+        let lex: crate::lexer::Lexer = crate::lexer::Lexer::new(input);
         println!("{{");
         let mut tests_iter = tests.iter();
         for tok in lex {
@@ -485,10 +297,8 @@ pub mod test {
                     break;
                 }
             };
-            println!("\t\"Type\": {{expected: {{\"{}\"    found: \"{}\"}}}},", test_tok.expected_type, tok.token_type);
-            println!("\t\"Literal\": {{expected: {{\"{}\": found: \"{}\"}}}},", test_tok.expected_literal, tok.literal);
-            assert_eq!(test_tok.expected_type, tok.token_type);
-            assert_eq!(test_tok.expected_literal, tok.literal);
+            println!("\t\"Token\": {{expected: {{\"{:?}\"    found: \"{:?}\"}}}},", test_tok.0, tok);
+            assert_eq!(test_tok.0, tok);
         }
         println!("}}");
     }
