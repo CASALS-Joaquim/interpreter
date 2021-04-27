@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-04-27T19:36:04.448Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36 Edg/90.0.818.46" etag="eBVOQi7qPQbuKiQuoxpu" version="14.6.6" type="github">
+<mxfile host="app.diagrams.net" modified="2021-04-27T19:36:51.730Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36 Edg/90.0.818.46" etag="lU2I21d109aanwfUCI2l" version="14.6.6" type="github">
   <diagram id="r4dBImqF64Q2Rql-agz5" name="Page-1">
     <mxGraphModel dx="1182" dy="764" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -101,8 +101,8 @@
         <mxCell id="bWRY1WSYJybc7Zgqh_eX-33" value="" style="whiteSpace=wrap;html=1;shape=mxgraph.basic.isocube;isoAngle=15;" vertex="1" parent="1">
           <mxGeometry x="60" y="980" width="670" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="bWRY1WSYJybc7Zgqh_eX-37" value="&lt;h1&gt;Data Layer&lt;/h1&gt;&lt;div&gt;It reads asynchronously the BufReader provided and&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="340" y="980" width="190" height="120" as="geometry" />
+        <mxCell id="bWRY1WSYJybc7Zgqh_eX-37" value="&lt;h1 style=&quot;text-align: center&quot;&gt;Data Layer&lt;/h1&gt;&lt;div style=&quot;text-align: center&quot;&gt;It reads asynchronously the BufReader provided and&amp;nbsp;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="320" y="980" width="160" height="120" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
