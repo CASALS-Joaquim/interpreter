@@ -6,8 +6,8 @@
 /// either a prefix expression with one operator, and the `right` expression, but no a `left` expr, neither a following operation,
 /// either an infix expression with one operator, and the `left` and `right` expressions, but no following operation,
 /// either one of the above with a following application
-fn expression(&mut self, paren: Paren, left: Option<ast::Expression>, op: Option<operator::Op>, right: Option<ast::Expression>, next_op: Option<operator::Op>) -> Expression {
-	match a {
+fn expression(&mut self, start_del: Delimiter, left: Option<ast::Expression>, op: Option<operator::Op>, right: Option<ast::Expression>, next_op: Option<operator::Op>) -> Expression {
+	let ret = match a {
 		None => self.parse_prefix(b, next_op), // prefix
 		Some(left) => match op {
 			None => left,
@@ -26,19 +26,23 @@ fn expression(&mut self, paren: Paren, left: Option<ast::Expression>, op: Option
 				}
 			}
 		}
+	};
+	if !start_del.closes(self.get(0).unwrap()) {
+		panic!()
 	}
+	expr
 }
 
 
 #[derive(PartialEq)]
-enum Paren {
+enum Delimiter {
     None,
     Paren,
     Brace,
     Bracket
 }
 
-impl Paren {
+impl Delimiter {
     pub fn closes(&self, tok: &token::Token) -> bool {
         match self {
             Paren => tok == tok::Token::RightParen,
@@ -48,7 +52,6 @@ impl Paren {
 		}
 	}
 }
-        
 ```
 Operator precedence and associativity:
 |  Operators  |  Precedence  |  Associativity |
