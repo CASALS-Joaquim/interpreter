@@ -3,26 +3,33 @@
 ```rust
 /// An expression is
 /// either a standalone value,
-/// either a prefix expression with one operator, and the `b` expression, but no the `a` expr but no following operation,
-/// either an infix expression with one operator, and the `a` and `b` expression, but no following operation,
+/// either a prefix expression with one operator, and the `right` expression, but no a `left` expr, neither a following operation,
+/// either an infix expression with one operator, and the `left` and `right` expressions, but no following operation,
 /// either one of the above with a following application
-fn expression(&self, paren: Paren, left: Option<Expression>, op: Option<Op>, right: Option<Expression>, next_op: Option<Op>) -> Expression {
+fn expression(&mut self, paren: Paren, left: Option<ast::Expression>, op: Option<operator::Op>, right: Option<ast::Expression>, next_op: Option<operator::Op>) -> Expression {
 	match a {
 		None => self.parse_prefix(b, next_op), // prefix
 		Some(left) => match op {
 			None => left,
-			Some(op) => match next_op {
-				None => {
-					let right = right.unxrap();
-					ast::Expression::Infix {
-						left: left,
-						operator: op.0,
-						right: right
+			Some(op) => {
+				let right = match next_op {
+					None | (Some(nop) if op > nop) => right.unwrap(),
+					Some(nop) => expression(right, next_op, self.raw(), match OpPrec::try_from(self.get(0)) {
+						Err(_) => None,
+						Ok(op) => Some(op)
 					}
-				},
-				Some(op) => 
-	
-    
+				};
+				ast::Expression::Infix {
+					left: left,
+					op: op.0,
+					right: right
+				}
+			}
+		}
+	}
+}
+
+
 #[derive(PartialEq)]
 enum Paren {
     None,
