@@ -54,8 +54,15 @@ impl Delimiter {
 }
 ```
 Operator precedence and associativity:
-|  Operators  |  Precedence  |  Associativity |
-|  ---------  |  ----------  |  ------------- |
-|   ';', ∅    |      0       |  Left to Right |
-|     ','     |      1       |  Left to Right |
-|   '+', '-'  |      2       |  Left to Right |
+|  Operators  |  Precedence  |  Associativity |   Name   |
+|  ---------  |  ----------  |  ------------- |  ------  |
+|   ';', ∅    |      0       |  Left to Right |  LOWEST  |
+|     ','     |      1       |  Left to Right |  COMMA   |
+|     '='     |      2       |  Right to Left |  ASSIGN  |
+| '==', '!='  |      3       |  Left to Right | EQUALITY |
+|'<', '>', '<=', '>='|   4   |  Left to Right |COMPARISON|
+|   '+', '-'  |      5       |  Left to Right |    SUM   |
+|  '\*', '/'  |      6       |  Left to Right |  PRODUCT |
+|   '\*\*'    |      7       |  Right to Left |    POW   |
+|'+', '-', '!'|      8       |  Right to Left |  PREFIX  |
+|  '()', '[]' |      9       |  Left to Right |  SUFFIX  |
