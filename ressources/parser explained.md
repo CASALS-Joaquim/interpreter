@@ -57,6 +57,7 @@ Operator precedence and associativity:
 |  Operators  |  Precedence  |  Associativity |   Name   |
 |  ---------  |  ----------  |  ------------- |  ------  |
 |   ';', ∅    |      0       |  Left to Right |  LOWEST  |
+| 'let', 'return' |      1   |  None          | STATEMENT|
 |     '='     |      1       |  Right to Left |  ASSIGN  |
 |     ','     |      2       |  Left to Right |  COMMA   |
 | '==', '!='  |      3       |  Left to Right | EQUALITY |
