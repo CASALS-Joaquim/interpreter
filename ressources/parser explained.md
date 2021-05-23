@@ -58,12 +58,12 @@ Operator precedence and associativity:
 |  ---------  |  ----------  |  ------------- |  ------  |
 |   ';', ∅    |      0       |  Left to Right |  LOWEST  |
 | 'let', 'return' |      1   |  None          | STATEMENT|
-|     '='     |      1       |  Right to Left |  ASSIGN  |
-|     ','     |      2       |  Left to Right |  COMMA   |
-| '==', '!='  |      3       |  Left to Right | EQUALITY |
-|'<', '>', '<=', '>='|   4   |  Left to Right |COMPARISON|
-|   '+', '-'  |      5       |  Left to Right |    SUM   |
-|  '\*', '/'  |      6       |  Left to Right |  PRODUCT |
-|   '\*\*'    |      7       |  Right to Left |    POW   |
-|'+', '-', '!'|      8       |  Right to Left |  PREFIX  |
-|  '()', '[]' |      9       |  Left to Right |  SUFFIX  |
+|     '='     |      2       |  Right to Left |  ASSIGN  |
+|     ','     |      3       |  Left to Right |  COMMA   |
+| '==', '!='  |      4       |  Left to Right | EQUALITY |
+|'<', '>', '<=', '>='|   5   |  Left to Right |COMPARISON|
+|   '+', '-'  |      6       |  Left to Right |    SUM   |
+|  '\*', '/'  |      7       |  Left to Right |  PRODUCT |
+|   '\*\*'    |      8       |  Right to Left |    POW   |
+|'+', '-', '!'|      9       |  Right to Left |  PREFIX  |
+|  '()', '[]' |      10      |  Left to Right |  SUFFIX  |
