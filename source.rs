@@ -20,7 +20,8 @@ impl<Src: BufRead> Source<Src> {
         let len = buffer
             .iter_mut()
             .map(|buf| {
-                *buf = self.read_byte::<u8>();
+                *buf = self.read_byte()
+                .unwrap_or(break);
                 *buf
             })
             .collect::<Vec<_>>()
@@ -32,4 +33,7 @@ impl<Src: BufRead> Source<Src> {
             delta
         }
     }
+    
+    fn read_byte(&mut self)  
 }
+
